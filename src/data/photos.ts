@@ -1,7 +1,7 @@
 /* Auto-generated photo manifest. Real photography from Pexels (free license,
    no attribution required — see docs/photo-credits.md). LQIP = 28px blur-up. */
 export interface Photo { src: string; lqip: string; w: number; h: number }
-export const PHOTOS: Record<string, Photo> = {
+const RAW_PHOTOS: Record<string, Photo> = {
   "bulgogi": {
     "src": "/photos/bulgogi.jpg",
     "lqip": "data:image/jpeg;base64,/9j/4QCARXhpZgAASUkqAAgAAAAFABIBAwABAAAAAQAAABoBBQABAAAASgAAABsBBQABAAAAUgAAACgBAwABAAAAAgAAAGmHBAABAAAAWgAAAAAAAABIAAAAAQAAAEgAAAABAAAAAgACoAQAAQAAABwAAAADoAQAAQAAABMAAAAAAAAA/+EA+mh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8APD94cGFja2V0IGJlZ2luPSIiIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4KPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iR28gWE1QIFNESyAxLjAiPjxyZGY6UkRGIHhtbG5zOnJkZj0iaHR0cDovL3d3dy53My5vcmcvMTk5OS8wMi8yMi1yZGYtc3ludGF4LW5zIyI+PC9yZGY6UkRGPjwveDp4bXBtZXRhPgo8P3hwYWNrZXQgZW5kPSJ3Ij8+/+0AJFBob3Rvc2hvcCAzLjAAOEJJTQQEAAAAAAAIHAFaAAMbJUf/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAATABwDASIAAhEBAxEB/8QAGAAAAwEBAAAAAAAAAAAAAAAAAAUHBAb/xAAqEAABBAEDAwMDBQAAAAAAAAABAgMEBREABhIUITETIlEHI2EyQUJSgf/EABYBAQEBAAAAAAAAAAAAAAAAAAMEBf/EACIRAAEEAQQCAwAAAAAAAAAAAAEAAgMREgQTMWEhcaHh8P/aAAwDAQACEQMRAD8AzbUq4dBslFNf1jZ3O48uTD5tJcUywePEugg9iQfYck/GmV/BrzuJneu4moZkx2UJeiJaPSuuoSoA+7PfiBhIz3AOmm+dtybS4uL7aFjAsJEdB6uKCOpZAGDwJBHgD48ds6nVnu+ssUvrtINhguB2Ij0+oSg8AFKHE8cq8fgayJ5J3gNjdTeqs+vpa21BKC515H48fuV1G+t8tb12ZJrKmip0vraAV1QCHWR/Zr8+MEkec40okxtzONQ1RK12wjdM0G32YoWnAQBxyk4JByPntriLmaLKS8YdU8fVbCuamunSF/yKs/rHx2A/A1Uaylqtswmq2dvC8YmoSlb6IKShoLUkHt7TnsR3/fVEGpMDblPjvlDLo904wiz0pR9LJ8uJuqzlx5DqZEemnSG18icOIZJSrB7HB+dXX6P7ZpN1bHq7O9q4kme9j1Hkthor7eTwwCdGjV0LRXCgJNqsRNmbcrmEdJTQkEfdCi3yUFDwQo5I1ik0VVaSnnrGuiSXUK9NK3GgSEjwM/7o0aTBrhThYRmRzHZNNFf/2Q==",
@@ -87,3 +87,9 @@ export const PHOTOS: Record<string, Photo> = {
     "h": 1067
   }
 };
+
+/* Deploy-safe: photo paths honor the Vite base (e.g. GitHub Pages subpath). */
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
+export const PHOTOS: Record<string, Photo> = Object.fromEntries(
+  Object.entries(RAW_PHOTOS).map(([k, v]) => [k, { ...v, src: BASE + v.src }])
+);
