@@ -91,38 +91,61 @@ export default function FoodMap({
 
   const pins = project(dish.pins, dish.photo.w, dish.photo.h, box[0], box[1], focus);
 
-  // Cursor-as-lens: write coords straight to CSS vars (no React re-render),
-  // ignite pins whose dot falls inside the lens radius.
-  const onLensMove = (e: React.PointerEvent<HTMLElement>) => {
+  // Cursor-as-lens, tracked at window level so overlaying siblings (hero
+  // copy, CTAs) can't swallow pointer events and stutter the lens. Coords
+  // stream to CSS vars through one rAF — no React re-renders.
+  useEffect(() => {
     const el = boxRef.current;
-    if (!el || !lens || e.pointerType !== 'mouse') return;
-    const r = el.getBoundingClientRect();
-    const x = e.clientX - r.left;
-    const y = e.clientY - r.top;
-    el.style.setProperty('--lx', `${x}px`);
-    el.style.setProperty('--ly', `${y}px`);
-    el.classList.add('is-lensing');
-    const R = 170;
-    el.querySelectorAll<HTMLElement>('.fpin').forEach((p) => {
-      const pr = p.getBoundingClientRect();
-      const dx = pr.left + 5 - r.left - x;
-      const dy = pr.top + 5 - r.top - y;
-      p.classList.toggle('is-lit', dx * dx + dy * dy < R * R);
-    });
-  };
-  const onLensLeave = () => {
-    const el = boxRef.current;
-    if (!el) return;
-    el.classList.remove('is-lensing');
-    el.querySelectorAll('.is-lit').forEach((p) => p.classList.remove('is-lit'));
-  };
+    if (!lens || !el) return;
+    const fine =
+      window.matchMedia('(hover: hover)').matches &&
+      !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!fine) return;
+
+    let px = 0;
+    let py = 0;
+    const off = () => {
+      el.classList.remove('is-lensing');
+      el.querySelectorAll('.is-lit').forEach((p) => p.classList.remove('is-lit'));
+    };
+    const apply = () => {
+      const r = el.getBoundingClientRect();
+      const x = px - r.left;
+      const y = py - r.top;
+      if (x < 0 || y < 0 || x > r.width || y > r.height) {
+        off();
+        return;
+      }
+      el.style.setProperty('--lx', `${x}px`);
+      el.style.setProperty('--ly', `${y}px`);
+      el.classList.add('is-lensing');
+      const R = 170;
+      el.querySelectorAll<HTMLElement>('.fpin').forEach((p) => {
+        const pr = p.getBoundingClientRect();
+        const dx = pr.left + 5 - r.left - x;
+        const dy = pr.top + 5 - r.top - y;
+        p.classList.toggle('is-lit', dx * dx + dy * dy < R * R);
+      });
+    };
+    const onMove = (e: PointerEvent) => {
+      if (e.pointerType && e.pointerType !== 'mouse') return;
+      px = e.clientX;
+      py = e.clientY;
+      apply(); // direct write — cheap, and immune to background-tab rAF throttling
+    };
+    window.addEventListener('pointermove', onMove, { passive: true });
+    window.addEventListener('blur', off);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('blur', off);
+      off();
+    };
+  }, [lens, dish.id]);
 
   return (
     <figure
       ref={boxRef}
       className={`fmap ${armed ? 'is-armed' : ''} ${lens ? 'fmap--lens' : ''} ${className ?? ''}`}
-      onPointerMove={lens ? onLensMove : undefined}
-      onPointerLeave={lens ? onLensLeave : undefined}
     >
       <Pic
         photo={dish.photo}
