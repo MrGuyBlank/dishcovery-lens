@@ -34,7 +34,7 @@ export default function Landing() {
       </nav>
 
       {/* HERO — the product, demonstrated on frame one */}
-      <header className="hero" id="main">
+      <header className="hero" id="main" tabIndex={-1}>
         <div className="hero__map">
           <FoodMap dish={hero} eager replayKey={replay} />
         </div>
@@ -100,8 +100,8 @@ export default function Landing() {
             us. The map is yours.
           </p>
           <div className="chapter__stat">
-            <span><b>5</b><small>detections</small></span>
-            <span><b>95%</b><small>top confidence</small></span>
+            <span><b>{DISH_BY_ID.burger.pins.length}</b><small>detections</small></span>
+            <span><b>{Math.max(...DISH_BY_ID.burger.pins.map((p) => p.conf))}%</b><small>top confidence</small></span>
             <span><b>1 tap</b><small>to correct</small></span>
           </div>
         </div>

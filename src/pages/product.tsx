@@ -5,6 +5,7 @@ import {
   Outlet,
   useNavigate,
   useParams,
+  useSearchParams,
   Navigate,
 } from 'react-router-dom';
 import {
@@ -60,8 +61,8 @@ export function Lens() {
         <p className="sample-tag">Demo lens — analysis is simulated on sample plates</p>
         <h1 className="serif" style={{ marginTop: '0.7rem' }}>Point the Lens.</h1>
         <p>
-          Pick a plate to map it. Uploads are matched to the nearest sample in
-          this demo — live camera analysis ships with the app.
+          Pick a plate to map it. Uploads are matched to a sample plate in this
+          demo — live camera analysis ships with the app.
         </p>
       </div>
       <div className="lens-grid">
@@ -87,6 +88,8 @@ export function Lens() {
 /* ================= Map ================= */
 export function MapPage() {
   const { slug } = useParams();
+  const [params] = useSearchParams();
+  const fromUpload = params.get('from') === 'upload';
   const navigate = useNavigate();
   const base = slug ? DISH_BY_SLUG[slug] : undefined;
   const pinEdits = useStore((s) => s.pinEdits);
@@ -116,7 +119,11 @@ export function MapPage() {
     <div>
       <div className="phead" style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'flex-end', justifyContent: 'space-between' }}>
         <div>
-          <p className="sample-tag">Food Map — simulated sample analysis · every pin editable</p>
+          <p className="sample-tag">
+            {fromUpload
+              ? 'Matched to a sample plate — this is not your photo · simulated analysis'
+              : 'Food Map — simulated sample analysis · every pin editable'}
+          </p>
           <h1 className="serif" style={{ marginTop: '0.7rem' }}>{dish.title}</h1>
           <p>{dish.story}</p>
         </div>
@@ -264,11 +271,33 @@ function PinEditor({ pin, onClose, onSave }: { pin: Pin; onClose: () => void; on
   const [label, setLabel] = useState(pin.label);
   const panelRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const el = panelRef.current?.querySelector<HTMLElement>('input');
-    el?.focus();
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    const restore = document.activeElement as HTMLElement | null;
+    const focusables = () =>
+      [...(panelRef.current?.querySelectorAll<HTMLElement>('input, button') ?? [])];
+    focusables()[0]?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const els = focusables();
+      if (els.length === 0) return;
+      const first = els[0];
+      const last = els[els.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
     document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      restore?.focus?.();
+    };
   }, [onClose]);
   return (
     <div className="pedit" role="dialog" aria-modal="true" aria-label={`Correct detection: ${pin.label}`} onClick={onClose}>
@@ -434,11 +463,14 @@ export function Cookspace() {
 
   const steps = dish?.steps ?? [];
   const step = steps[i];
+  // Steps longer than 90 min (ferments, overnight rests) don't get a live
+  // timer — a countdown would be theater, and honesty is the house style.
+  const timedMin = step?.min && step.min <= 90 ? step.min : null;
 
   useEffect(() => {
-    setSecs(step?.min ? Math.min(step.min, 99) * 60 : null);
+    setSecs(timedMin ? timedMin * 60 : null);
     setRunning(false);
-  }, [i, step?.min]);
+  }, [i, timedMin]);
 
   useEffect(() => {
     if (!running) return;
@@ -450,19 +482,29 @@ export function Cookspace() {
     if (secs === 0 && running) setRunning(false);
   }, [secs, running]);
 
-  // Screen wake lock — greasy hands, long simmers.
+  // Screen wake lock — greasy hands, long simmers. Re-acquired when the
+  // tab becomes visible again (the system drops it on hide).
   useEffect(() => {
     let active = true;
     let lock: { release?: () => Promise<void> } | undefined;
-    (async () => {
+    const request = async () => {
       try {
         const l = await (navigator as Navigator & { wakeLock?: { request: (t: string) => Promise<never> } }).wakeLock?.request('screen');
         if (active) lock = l ?? undefined;
         else (l as { release?: () => Promise<void> } | undefined)?.release?.();
       } catch { /* fine without it */ }
-    })();
+    };
+    request();
+    const onVis = () => {
+      if (document.visibilityState === 'visible') {
+        lock = undefined;
+        request();
+      }
+    };
+    document.addEventListener('visibilitychange', onVis);
     return () => {
       active = false;
+      document.removeEventListener('visibilitychange', onVis);
       lock?.release?.().catch(() => {});
     };
   }, []);
@@ -474,12 +516,12 @@ export function Cookspace() {
       if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
       if (e.key === 'ArrowRight') setI((x) => Math.min(x + 1, steps.length - 1));
       else if (e.key === 'ArrowLeft') setI((x) => Math.max(0, x - 1));
-      else if (e.key.toLowerCase() === 't' && step?.min) setRunning((r) => !r);
+      else if (e.key.toLowerCase() === 't' && timedMin) setRunning((r) => !r);
       else if (e.key === 'Escape' && dish) navigate(`/map/${dish.slug}`);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [steps.length, step?.min, dish, navigate]);
+  }, [steps.length, timedMin, dish, navigate]);
 
   if (!dish || steps.length === 0) return <Navigate to="/lens" replace />;
 
@@ -487,7 +529,7 @@ export function Cookspace() {
   const mmss = secs !== null ? `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}` : null;
 
   return (
-    <div className="cookspace">
+    <div className="cookspace" id="main" tabIndex={-1}>
       <div className="cookspace__bar">
         <button className="act act--bare" onClick={() => navigate(`/map/${dish.slug}`)}>✕ Exit</button>
         <span className="caps caps--dim">{dish.title}</span>
@@ -497,7 +539,7 @@ export function Cookspace() {
       </div>
       <div className="cookspace__progress"><i style={{ width: `${((i + 1) / steps.length) * 100}%` }} /></div>
       <div className="visually-hidden" role="status" aria-live="polite">
-        Step {i + 1} of {steps.length}: {step.text}
+        {secs === 0 ? 'Timer finished. ' : ''}Step {i + 1} of {steps.length}: {step.text}
       </div>
       <div className="cookspace__body">
         <p className="cookspace__step">{step.text}</p>
@@ -508,8 +550,8 @@ export function Cookspace() {
               className="act"
               style={{ marginTop: '0.9rem' }}
               onClick={() => {
-                if (secs === 0 && step.min) {
-                  setSecs(Math.min(step.min, 99) * 60);
+                if (secs === 0 && timedMin) {
+                  setSecs(timedMin * 60);
                   setRunning(true);
                 } else setRunning((r) => !r);
               }}

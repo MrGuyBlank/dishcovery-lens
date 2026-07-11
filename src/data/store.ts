@@ -87,7 +87,7 @@ export const useStore = create<State>()(
       portion: {},
       setPortion: (dishId, v) => set((s) => ({ portion: { ...s.portion, [dishId]: v } })),
     }),
-    { name: 'dishcovery-lens-v1' }
+    { name: 'dishcovery-lens-v1', version: 1 }
   )
 );
 
@@ -102,14 +102,24 @@ export function correctedDish(id: string) {
   };
 }
 
-/** How much of a dish's shopping list the kitchen already covers. */
+/** Meaningful word tokens for loose ingredient matching. */
+const tokens = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, ' ')
+    .split(/\s+/)
+    .filter((t) => t.length > 3 && !['with', 'fresh', 'sliced', 'ground'].includes(t));
+
+/** How much of a dish's shopping list the kitchen already covers.
+    Token-overlap matching so "Beef & pork ragù" (from a map pin)
+    satisfies "Ground beef & pork" (an ingredient line). */
 export function kitchenMatch(id: string, kitchen: KitchenItem[]) {
   const dish = DISH_BY_ID[id];
   if (!dish) return { pct: 0, missing: [] as string[] };
-  const have = kitchen.map((k) => k.name.toLowerCase());
+  const haveTokens = new Set(kitchen.flatMap((k) => tokens(k.name)));
   const need = dish.ingredients.filter((i) => !i.staple);
   const missing = need
-    .filter((i) => !have.some((h) => i.name.toLowerCase().includes(h) || h.includes(i.name.toLowerCase().split(' ')[0])))
+    .filter((i) => !tokens(i.name).some((t) => haveTokens.has(t)))
     .map((i) => i.name);
   const pct = need.length === 0 ? 100 : Math.round(((need.length - missing.length) / need.length) * 100);
   return { pct, missing };

@@ -11,12 +11,18 @@
       content="Point Dishcovery at any plate. It reads the photograph, maps every ingredient with honest confidence, and turns dinner you saw into dinner you make."
     />
     <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://mrguyblank.github.io/dishcovery-lens/" />
     <meta property="og:title" content="Dishcovery — Your food, annotated." />
     <meta
       property="og:description"
       content="Photograph a plate. Get a Food Map: every ingredient pinned, scored, costed — then recreate, plan, and cook it."
     />
+    <meta property="og:image" content="https://mrguyblank.github.io/dishcovery-lens/photos/lasagna.jpg" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://mrguyblank.github.io/dishcovery-lens/photos/lasagna.jpg" />
+
+    <!-- The hero photograph is the LCP — fetch it before the JS chain resolves -->
+    <link rel="preload" href="%BASE_URL%photos/lasagna.jpg" as="image" fetchpriority="high" />
   </head>
   <body>
     <div id="root"></div>
