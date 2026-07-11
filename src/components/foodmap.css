@@ -1,0 +1,233 @@
+/* ---------- Pic (blur-up, stateless) ---------- */
+.pic {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+}
+.pic img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.pic__lqip {
+  position: absolute;
+  inset: 0;
+}
+.pic__full {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------- FoodMap ---------- */
+.fmap {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--coal);
+}
+.fmap .pic,
+.fmap .pic img {
+  height: 100%;
+}
+
+/* scan sweep — one pass, CSS-only */
+.fmap__scan {
+  position: absolute;
+  inset-block: 0;
+  width: 34%;
+  left: -40%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(242, 237, 227, 0.07) 42%,
+    rgba(255, 92, 56, 0.22) 50%,
+    rgba(242, 237, 227, 0.07) 58%,
+    transparent
+  );
+  border-right: 1px solid rgba(255, 92, 56, 0.65);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+.fmap.is-armed .fmap__scan {
+  animation: fmap-sweep 1.15s var(--snap) 0.1s 1 forwards;
+}
+@keyframes fmap-sweep {
+  0% {
+    left: -40%;
+    opacity: 1;
+  }
+  92% {
+    opacity: 1;
+  }
+  100% {
+    left: 108%;
+    opacity: 0;
+  }
+}
+
+/* pins */
+.fmap__pins {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+}
+.fpin {
+  position: absolute;
+  display: block;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  text-align: left;
+  color: var(--bone);
+}
+.fmap.is-armed .fpin {
+  animation: fpin-in 0.5s var(--ease) var(--pin-delay) 1 forwards;
+}
+@keyframes fpin-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.fpin__dot {
+  display: block;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--pin-c);
+  border: 2px solid rgba(11, 10, 8, 0.85);
+  box-shadow: 0 0 0 1px var(--pin-c), 0 2px 10px rgba(0, 0, 0, 0.6);
+}
+.fpin__line {
+  position: absolute;
+  top: 5px;
+  left: 11px;
+  width: 34px;
+  height: 1px;
+  background: var(--pin-c);
+  transform-origin: left center;
+  transform: scaleX(0);
+}
+.fmap.is-armed .fpin__line {
+  animation: fpin-line 0.35s var(--ease) calc(var(--pin-delay) + 0.15s) 1 forwards;
+}
+@keyframes fpin-line {
+  to {
+    transform: scaleX(1);
+  }
+}
+.fpin__tag {
+  position: absolute;
+  top: -9px;
+  left: 49px;
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  padding: 0.32rem 0.55rem;
+  background: rgba(11, 10, 8, 0.82);
+  backdrop-filter: blur(4px);
+  border: 1px solid var(--rule-strong);
+  border-left: 2px solid var(--pin-c);
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(3px);
+}
+.fmap.is-armed .fpin__tag {
+  animation: fpin-tag 0.4s var(--ease) calc(var(--pin-delay) + 0.3s) 1 forwards;
+}
+@keyframes fpin-tag {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.fpin__label {
+  font-family: var(--mono);
+  font-size: var(--micro);
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.fpin__conf {
+  font-family: var(--mono);
+  font-size: var(--micro);
+  color: var(--pin-c);
+  font-weight: 600;
+}
+.fpin__note {
+  font-size: 0.64rem;
+  color: var(--bone-40);
+  font-style: italic;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+/* mirrored pins (labels grow leftward) */
+.fpin--left .fpin__line {
+  left: auto;
+  right: 11px;
+  transform-origin: right center;
+}
+.fpin--left .fpin__tag {
+  left: auto;
+  right: 49px;
+  border-left: 1px solid var(--rule-strong);
+  border-right: 2px solid var(--pin-c);
+}
+
+/* editable affordance */
+button.fpin {
+  cursor: pointer;
+}
+button.fpin:hover .fpin__tag,
+button.fpin:focus-visible .fpin__tag {
+  background: var(--bone);
+  color: var(--black);
+  border-color: var(--bone);
+}
+button.fpin:hover .fpin__note,
+button.fpin:focus-visible .fpin__note {
+  color: rgba(11, 10, 8, 0.6);
+}
+
+/* small screens: tighten tags */
+@media (max-width: 640px) {
+  .fpin__line {
+    width: 18px;
+  }
+  .fpin__tag {
+    left: 33px;
+    gap: 0.35rem;
+    padding: 0.26rem 0.45rem;
+  }
+  .fpin--left .fpin__tag {
+    right: 33px;
+  }
+  .fpin__note {
+    display: none;
+  }
+}
+
+/* reduced motion: final state, no theatrics */
+@media (prefers-reduced-motion: reduce) {
+  .fmap__scan {
+    display: none;
+  }
+  .fpin,
+  .fpin__tag {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+  .fpin__tag {
+    transform: none;
+  }
+  .fpin__line {
+    transform: scaleX(1);
+  }
+}
