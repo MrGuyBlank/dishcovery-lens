@@ -36,7 +36,7 @@ export default function Landing() {
       {/* HERO — the product, demonstrated on frame one */}
       <header className="hero" id="main" tabIndex={-1}>
         <div className="hero__map">
-          <FoodMap dish={hero} eager replayKey={replay} />
+          <FoodMap dish={hero} eager lens replayKey={replay} />
         </div>
         <div className="hero__body frame">
           <p className="sample-tag">Sample plate — simulated analysis</p>

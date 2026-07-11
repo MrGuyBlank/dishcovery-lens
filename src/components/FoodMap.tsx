@@ -48,6 +48,7 @@ export default function FoodMap({
   onEditPin,
   replayKey = 0,
   className,
+  lens = false,
 }: {
   dish: Dish;
   eager?: boolean;
@@ -55,6 +56,8 @@ export default function FoodMap({
   onEditPin?: (index: number, pin: Pin) => void;
   replayKey?: number;
   className?: string;
+  /** cursor-as-lens: pointer reveals full color + ignites nearby pins */
+  lens?: boolean;
 }) {
   const [armed, setArmed] = useState(false);
   const boxRef = useRef<HTMLElement>(null);
@@ -88,8 +91,39 @@ export default function FoodMap({
 
   const pins = project(dish.pins, dish.photo.w, dish.photo.h, box[0], box[1], focus);
 
+  // Cursor-as-lens: write coords straight to CSS vars (no React re-render),
+  // ignite pins whose dot falls inside the lens radius.
+  const onLensMove = (e: React.PointerEvent<HTMLElement>) => {
+    const el = boxRef.current;
+    if (!el || !lens || e.pointerType !== 'mouse') return;
+    const r = el.getBoundingClientRect();
+    const x = e.clientX - r.left;
+    const y = e.clientY - r.top;
+    el.style.setProperty('--lx', `${x}px`);
+    el.style.setProperty('--ly', `${y}px`);
+    el.classList.add('is-lensing');
+    const R = 170;
+    el.querySelectorAll<HTMLElement>('.fpin').forEach((p) => {
+      const pr = p.getBoundingClientRect();
+      const dx = pr.left + 5 - r.left - x;
+      const dy = pr.top + 5 - r.top - y;
+      p.classList.toggle('is-lit', dx * dx + dy * dy < R * R);
+    });
+  };
+  const onLensLeave = () => {
+    const el = boxRef.current;
+    if (!el) return;
+    el.classList.remove('is-lensing');
+    el.querySelectorAll('.is-lit').forEach((p) => p.classList.remove('is-lit'));
+  };
+
   return (
-    <figure ref={boxRef} className={`fmap ${armed ? 'is-armed' : ''} ${className ?? ''}`}>
+    <figure
+      ref={boxRef}
+      className={`fmap ${armed ? 'is-armed' : ''} ${lens ? 'fmap--lens' : ''} ${className ?? ''}`}
+      onPointerMove={lens ? onLensMove : undefined}
+      onPointerLeave={lens ? onLensLeave : undefined}
+    >
       <Pic
         photo={dish.photo}
         alt={`${dish.title} — plated dish photograph`}
@@ -99,6 +133,19 @@ export default function FoodMap({
 
       {/* one-pass scan sweep */}
       <div className="fmap__scan" aria-hidden="true" />
+
+      {lens && (
+        <div className="fmap__lens" aria-hidden="true">
+          {/* full-color reveal clipped to the lens circle */}
+          <img
+            className="fmap__lens-img"
+            src={dish.photo.src}
+            alt=""
+            style={{ objectPosition: `${focus[0]}% ${focus[1]}%` }}
+          />
+          <div className="fmap__reticle" />
+        </div>
+      )}
 
       {/* annotation layer */}
       <div className="fmap__pins" aria-hidden={!editable}>

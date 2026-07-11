@@ -196,6 +196,91 @@ button.fpin:focus-visible .fpin__note {
   color: rgba(11, 10, 8, 0.6);
 }
 
+/* ---------- Cursor-as-lens (fine pointers only) ---------- */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .fmap--lens {
+    --lx: -999px;
+    --ly: -999px;
+    cursor: crosshair;
+  }
+  .fmap--lens .pic__full {
+    transition: filter 0.5s var(--ease);
+  }
+  .fmap--lens.is-lensing .pic__full {
+    filter: saturate(0.45) brightness(0.72);
+  }
+  .fmap__lens {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.35s var(--ease);
+  }
+  .is-lensing .fmap__lens {
+    opacity: 1;
+  }
+  .fmap__lens-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    clip-path: circle(150px at var(--lx) var(--ly));
+  }
+  .fmap__reticle {
+    position: absolute;
+    left: var(--lx);
+    top: var(--ly);
+    width: 300px;
+    height: 300px;
+    transform: translate(-50%, -50%);
+    border: 1px solid rgba(255, 92, 56, 0.85);
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px rgba(11, 10, 8, 0.4), inset 0 0 40px rgba(255, 92, 56, 0.06);
+  }
+  /* reticle ticks */
+  .fmap__reticle::before,
+  .fmap__reticle::after {
+    content: '';
+    position: absolute;
+    background: var(--signal);
+  }
+  .fmap__reticle::before {
+    left: 50%;
+    top: -7px;
+    width: 1px;
+    height: 14px;
+    box-shadow: 0 293px 0 var(--signal);
+  }
+  .fmap__reticle::after {
+    top: 50%;
+    left: -7px;
+    height: 1px;
+    width: 14px;
+    box-shadow: 293px 0 0 var(--signal);
+  }
+  /* pins ignite under the lens */
+  .fpin .fpin__tag,
+  .fpin .fpin__dot {
+    transition: transform 0.25s var(--ease), background 0.25s var(--ease), color 0.25s var(--ease);
+  }
+  .fpin.is-lit {
+    z-index: 5;
+  }
+  .fpin.is-lit .fpin__dot {
+    transform: scale(1.5);
+    box-shadow: 0 0 0 2px var(--pin-c), 0 0 18px 2px var(--pin-c);
+  }
+  .fpin.is-lit .fpin__tag {
+    background: var(--bone);
+    color: var(--black);
+    border-color: var(--bone);
+    transform: translateY(-1px);
+  }
+  .fpin.is-lit .fpin__note {
+    color: rgba(11, 10, 8, 0.6);
+  }
+}
+
 /* small screens: tighten tags */
 @media (max-width: 640px) {
   .fpin__line {
